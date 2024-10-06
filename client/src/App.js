@@ -91,7 +91,7 @@ function App() {
 
           if (fall) {
             setFallDetected(true);
-            console.log("===============FALLEN====================")
+            console.log("Patient Fell!")
           } else {
             setFallDetected(false);
           }
@@ -127,7 +127,7 @@ function App() {
 
       const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
 
-      if (Math.abs(angle) < 30 || Math.abs(angle) > 150) {
+      if (Math.abs(angle) < 90 || Math.abs(angle) > 180) {
         console.log("ANGLE", angle)
         triggerEmergencyCall(phoneNumber)
         return true;

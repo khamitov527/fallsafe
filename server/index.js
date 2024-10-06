@@ -22,6 +22,9 @@ if (!accountSid || !authToken || !twilioPhoneNumber) {
 
 const client = twilio(accountSid, authToken);
 
+// In-memory store to keep track of last call times per phone number
+const lastCallTimes = {};
+
 // Endpoint to trigger a phone call
 app.post('/api/call-caregiver', (req, res) => {
   const { toPhoneNumber } = req.body;
@@ -30,11 +33,23 @@ app.post('/api/call-caregiver', (req, res) => {
     return res.status(400).send('Phone number is required');
   }
 
+  const now = Date.now();
+  const lastCallTime = lastCallTimes[toPhoneNumber];
+
+  // Check if a call was made to this number in the last minute
+  if (lastCallTime && now - lastCallTime < 120000) {
+    console.log(`Call already made to ${toPhoneNumber} in the last minute. Skipping...`);
+    return res.status(200).send('Call already made recently. Please wait 2 minutes before trying again.');
+  }
+
+  // Update the last call time
+  lastCallTimes[toPhoneNumber] = now;
+
   client.calls
     .create({
-      url: 'http://twimlets.com/message?Message%5B0%5D=Fall+Detected%21+Please+check+immediately.', // TwiML message
-      to: toPhoneNumber, // Phone number to call (from the request)
-      from: twilioPhoneNumber // Your Twilio number
+      url: 'http://twimlets.com/message?Message%5B0%5D=Fall+Detected%21+Please+check+immediately.',
+      to: toPhoneNumber,
+      from: twilioPhoneNumber
     })
     .then((call) => {
       console.log('Call initiated:', call.sid);
