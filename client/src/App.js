@@ -291,9 +291,9 @@ function App() {
 
       const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
 
-      if (Math.abs(angle) < 80 || Math.abs(angle) > 110) {
+      if (Math.abs(angle) < 30 || Math.abs(angle) > 150) {
         console.log('ANGLE', angle);
-        //triggerEmergencyCall(userPhoneNumber.current);
+        triggerEmergencyCall(userPhoneNumber.current);
         return true;
       }
     }
