@@ -37,7 +37,7 @@ app.post('/api/call-caregiver', (req, res) => {
   const lastCallTime = lastCallTimes[toPhoneNumber];
 
   // Check if a call was made to this number in the last minute
-  if (lastCallTime && now - lastCallTime < 120000) {
+  if (lastCallTime && now - lastCallTime < 4500) {
     console.log(`Call already made to ${toPhoneNumber} in the last minute. Skipping...`);
     return res.status(200).send('Call already made recently. Please wait 2 minutes before trying again.');
   }
