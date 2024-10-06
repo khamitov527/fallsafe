@@ -2,6 +2,16 @@
 
 **FallSafe** is a real-time fall detection system designed to enhance the safety of patients. By leveraging AI-powered pose detection, FallSafe instantly alerts nurses and caregivers when a fall is detected, ensuring timely assistance and improving patient monitoring efficiency.
 
+<img width="400" alt="Screenshot 2024-10-06 at 10 09 43 AM" src="https://github.com/user-attachments/assets/5b8ef91c-1218-484f-9a01-d118061f5ce7">
+<img width="400" alt="Screenshot 2024-10-06 at 10 10 07 AM" src="https://github.com/user-attachments/assets/52611bbf-6fc9-4950-a106-b543ffacbc8c">
+<img width="400" alt="Screenshot 2024-10-06 at 10 10 46 AM" src="https://github.com/user-attachments/assets/2ba32b52-942b-4c28-823b-0be3b2e59d0c">
+<img width="400" alt="Screenshot 2024-10-06 at 10 13 36 AM" src="https://github.com/user-attachments/assets/32e85998-9940-42f6-9e6a-55b263782337">
+
+
+
+
+
+
 ## 🩺 The Problem
 
 Falls are a major concern for the elderly and patients in medical facilities. They can lead to serious injuries, prolonged hospital stays, and decreased quality of life. Traditional monitoring methods often rely on manual checks, which can be insufficient for timely detection and response.
