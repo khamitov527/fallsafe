@@ -11,6 +11,7 @@ function App() {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const userPhoneNumber = useRef('');
+  const isStreamingRef = useRef(false);
 
   // Initialize Human model
   const humanConfig = {
@@ -26,31 +27,28 @@ function App() {
 
   const human = new Human(humanConfig);
 
-  // Handle phone number input
   const handlePhoneNumberSubmit = (e) => {
     e.preventDefault();
     userPhoneNumber.current = phoneNumber;
     console.log(`Phone number saved: ${userPhoneNumber.current}`);
   };
 
-  // Access webcam and load Human model
   const startStreamAndDetection = async () => {
     try {
-      await human.load(); // Load models and initialize
-      await human.warmup(); // Optional: warm up the model
+      await human.load();
+      await human.warmup();
 
       setIsLoading(true);
 
-      // Access webcam
       navigator.mediaDevices.getUserMedia({ video: true })
         .then((stream) => {
           videoRef.current.srcObject = stream;
           videoRef.current.play();
-          streamRef.current = stream; // Save the stream to stop later
+          streamRef.current = stream;
 
-          setIsStreaming(true); // Set streaming to true
+          setIsStreaming(true);
+          isStreamingRef.current = true;
 
-          // Start fall detection process
           detectFall();
         })
         .catch((err) => {
@@ -61,7 +59,6 @@ function App() {
     }
   };
 
-  // Stop webcam stream
   const stopStream = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -75,35 +72,29 @@ function App() {
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
     setIsStreaming(false);
+    isStreamingRef.current = false;
     setIsLoading(false);
   };
 
   const detectFall = async () => {
     const detect = async () => {
       try {
-        if (!isStreaming) return;
+        if (!isStreamingRef.current) return;
 
         const result = await human.detect(videoRef.current);
         const poses = result.body;
 
         if (poses && poses.length > 0) {
           const pose = poses[0];
-
-          // Check if fall is detected
           const fall = isFallDetected(pose);
-
-          // Draw the pose and skeleton on canvas
           drawCanvas(pose, videoRef.current, canvasRef.current, fall);
 
           if (fall) {
-            console.log('============== Fall detected! ===============');
             setFallDetected(true);
-            // triggerEmergencyCall(userPhoneNumber.current);
           } else {
             setFallDetected(false);
           }
         } else {
-          // Clear canvas if no pose is detected
           const ctx = canvasRef.current.getContext('2d');
           ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         }
@@ -119,31 +110,29 @@ function App() {
 
   const isFallDetected = (pose) => {
     const keypoints = pose.keypoints;
-    console.log('=======Detected Keypoints:', keypoints);
-    const leftShoulder = keypoints.find(k => k.part === 'left_shoulder');
-    const rightShoulder = keypoints.find(k => k.part === 'right_shoulder');
-    const leftHip = keypoints.find(k => k.part === 'left_hip');
-    const rightHip = keypoints.find(k => k.part === 'right_hip');
-
+    const leftShoulder = keypoints.find(k => k.part === 'leftShoulder');
+    const rightShoulder = keypoints.find(k => k.part === 'rightShoulder');
+    const leftHip = keypoints.find(k => k.part === 'leftHip');
+    const rightHip = keypoints.find(k => k.part === 'rightHip');
+  
     if (leftShoulder && rightShoulder && leftHip && rightHip) {
       const shouldersY = (leftShoulder.position[1] + rightShoulder.position[1]) / 2;
       const hipsY = (leftHip.position[1] + rightHip.position[1]) / 2;
       const shouldersX = (leftShoulder.position[0] + rightShoulder.position[0]) / 2;
       const hipsX = (leftHip.position[0] + rightHip.position[0]) / 2;
-
+  
       const deltaY = hipsY - shouldersY;
       const deltaX = hipsX - shouldersX;
-
+  
       const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-
-      // Adjust angle threshold as needed
-      if (Math.abs(angle) < 90) {
+  
+      if (Math.abs(angle) < 45) {
         return true;
       }
     }
-
+  
     return false;
-  };
+  };  
 
   const drawKeypoints = (keypoints, minConfidence, ctx, color = 'aqua') => {
     keypoints.forEach((keypoint) => {
@@ -158,21 +147,39 @@ function App() {
   };
 
   const drawSkeleton = (keypoints, minConfidence, ctx, color = 'red', lineWidth = 2) => {
-    const adjacentKeyPoints = human.draw.connect(keypoints);
-
-    adjacentKeyPoints.forEach(([from, to]) => {
-      drawSegment(from.position, to.position, color, lineWidth, ctx);
+    const adjacentKeyPoints = [
+      { partA: 'leftShoulder', partB: 'rightShoulder' },
+      { partA: 'leftShoulder', partB: 'leftElbow' },
+      { partA: 'leftElbow', partB: 'leftWrist' },
+      { partA: 'rightShoulder', partB: 'rightElbow' },
+      { partA: 'rightElbow', partB: 'rightWrist' },
+      { partA: 'leftHip', partB: 'rightHip' },
+      { partA: 'leftShoulder', partB: 'leftHip' },
+      { partA: 'rightShoulder', partB: 'rightHip' },
+      { partA: 'leftHip', partB: 'leftKnee' },
+      { partA: 'leftKnee', partB: 'leftAnkle' },
+      { partA: 'rightHip', partB: 'rightKnee' },
+      { partA: 'rightKnee', partB: 'rightAnkle' },
+    ];
+  
+    adjacentKeyPoints.forEach(({ partA, partB }) => {
+      const keypointA = keypoints.find(k => k.part === partA);
+      const keypointB = keypoints.find(k => k.part === partB);
+  
+      if (keypointA && keypointB && keypointA.score >= minConfidence && keypointB.score >= minConfidence) {
+        drawSegment(keypointA.position, keypointB.position, color, lineWidth, ctx);
+      }
     });
   };
 
   const drawSegment = (from, to, color, lineWidth, ctx) => {
     ctx.beginPath();
-    ctx.moveTo(from[0], from[1]);
-    ctx.lineTo(to[0], to[1]);
+    ctx.moveTo(from[0], from[1]); // Move to the first keypoint
+    ctx.lineTo(to[0], to[1]); // Draw a line to the second keypoint
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
     ctx.stroke();
-  };
+  };  
 
   const drawCanvas = (pose, video, canvas, fall) => {
     const ctx = canvas.getContext('2d');
@@ -180,12 +187,10 @@ function App() {
     canvas.height = video.videoHeight;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw the video frame
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const minConfidence = 0.2;
 
-    // Draw with different colors based on whether a fall is detected
     if (fall) {
       drawKeypoints(pose.keypoints, minConfidence, ctx, 'red');
       drawSkeleton(pose.keypoints, minConfidence, ctx, 'red');
