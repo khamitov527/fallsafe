@@ -91,6 +91,7 @@ function App() {
 
           if (fall) {
             setFallDetected(true);
+            console.log("===============FALLEN====================")
           } else {
             setFallDetected(false);
           }
@@ -126,7 +127,9 @@ function App() {
 
       const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
 
-      if (Math.abs(angle) < 45) {
+      if (Math.abs(angle) < 30 || Math.abs(angle) > 150) {
+        console.log("ANGLE", angle)
+        triggerEmergencyCall(phoneNumber)
         return true;
       }
     }
@@ -172,7 +175,6 @@ function App() {
       { partA: 'leftKnee', partB: 'leftAnkle' },
       { partA: 'rightHip', partB: 'rightKnee' },
       { partA: 'rightKnee', partB: 'rightAnkle' },
-      // Other connections...
     ];
 
     adjacentKeyPoints.forEach(({ partA, partB }) => {
@@ -221,20 +223,20 @@ function App() {
       drawKeypoints(pose.keypoints, minConfidence, ctx, 'red');
       drawSkeleton(pose.keypoints, minConfidence, ctx, 'red');
     } else {
-      drawKeypoints(pose.keypoints, minConfidence, ctx, 'aqua');
-      drawSkeleton(pose.keypoints, minConfidence, ctx, 'red');
+      drawKeypoints(pose.keypoints, minConfidence, ctx, 'red');
+      drawSkeleton(pose.keypoints, minConfidence, ctx, 'limegreen');
     }
   };
 
   const triggerEmergencyCall = (phoneNumber) => {
-    axios.post('/api/call-caregiver', { toPhoneNumber: phoneNumber })
+    axios.post('http://localhost:5001/api/call-caregiver', { toPhoneNumber: phoneNumber }) // Update the URL to match backend port
       .then(response => {
         console.log('Call initiated:', response.data);
       })
       .catch(error => {
         console.error('Error initiating call:', error);
       });
-  };
+  };  
 
   return (
     <div className="App">
