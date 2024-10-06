@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const twilio = require('twilio');
+const { parsePhoneNumberFromString } = require('libphonenumber-js');
 
 // Load environment variables
 require('dotenv').config();
@@ -33,22 +34,30 @@ app.post('/api/call-caregiver', (req, res) => {
     return res.status(400).send('Phone number is required');
   }
 
+  const phoneNumber = parsePhoneNumberFromString(toPhoneNumber, 'US');
+
+  if (!phoneNumber || !phoneNumber.isValid()) {
+    return res.status(400).send('Invalid phone number');
+  }
+
+  const formattedNumber = phoneNumber.number;
+
   const now = Date.now();
-  const lastCallTime = lastCallTimes[toPhoneNumber];
+  const lastCallTime = lastCallTimes[formattedNumber];
 
   // Check if a call was made to this number in the last minute
   if (lastCallTime && now - lastCallTime < 4500) {
-    console.log(`Call already made to ${toPhoneNumber} in the last minute. Skipping...`);
+    console.log(`Call already made to ${formattedNumber} in the last minute. Skipping...`);
     return res.status(200).send('Call already made recently. Please wait 2 minutes before trying again.');
   }
 
   // Update the last call time
-  lastCallTimes[toPhoneNumber] = now;
+  lastCallTimes[formattedNumber] = now;
 
   client.calls
     .create({
       url: 'http://twimlets.com/message?Message%5B0%5D=Fall+Detected%21+Please+check+immediately.',
-      to: toPhoneNumber,
+      to: formattedNumber,
       from: twilioPhoneNumber
     })
     .then((call) => {
