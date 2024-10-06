@@ -126,9 +126,11 @@ const CanvasElement = styled.canvas`
 
 
 const AlertOverlay = styled.div`
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
+  bottom: 0;
+  right: 0;
   width: 100%;
   height: 100%;
   background-color: rgba(225, 45, 57, 0.5);
@@ -291,7 +293,7 @@ function App() {
 
       if (Math.abs(angle) < 80 || Math.abs(angle) > 110) {
         console.log('ANGLE', angle);
-        triggerEmergencyCall(userPhoneNumber.current);
+        //triggerEmergencyCall(userPhoneNumber.current);
         return true;
       }
     }
