@@ -175,6 +175,14 @@ function App() {
   
     const minConfidence = 0.2;  // Adjusted to be more lenient
   
+    const ctx_new = canvasRef.current.getContext('2d');
+    if (ctx_new) {
+        console.log("ctx found");
+    } else {
+    console.error('Canvas context not available');
+    }
+
+
     // Draw with different colors based on whether a fall is detected
     if (fall) {
       drawKeypoints(pose.keypoints, minConfidence, ctx, 'red');
