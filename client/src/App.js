@@ -20,7 +20,7 @@ function App() {
     cacheSensitivity: 0,
     async: true,
     warmup: 'none',
-    face: { enabled: false },
+    face: { enabled: false }, // Face detection disabled
     hand: { enabled: false },
     body: { enabled: true },
   };
@@ -114,36 +114,48 @@ function App() {
     const rightShoulder = keypoints.find(k => k.part === 'rightShoulder');
     const leftHip = keypoints.find(k => k.part === 'leftHip');
     const rightHip = keypoints.find(k => k.part === 'rightHip');
-  
+
     if (leftShoulder && rightShoulder && leftHip && rightHip) {
       const shouldersY = (leftShoulder.position[1] + rightShoulder.position[1]) / 2;
       const hipsY = (leftHip.position[1] + rightHip.position[1]) / 2;
       const shouldersX = (leftShoulder.position[0] + rightShoulder.position[0]) / 2;
       const hipsX = (leftHip.position[0] + rightHip.position[0]) / 2;
-  
+
       const deltaY = hipsY - shouldersY;
       const deltaX = hipsX - shouldersX;
-  
+
       const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-  
+
       if (Math.abs(angle) < 45) {
         return true;
       }
     }
-  
+
     return false;
-  };  
+  };
 
   const drawKeypoints = (keypoints, minConfidence, ctx, color = 'aqua') => {
     keypoints.forEach((keypoint) => {
       if (keypoint.score >= minConfidence) {
-        const [x, y] = keypoint.position;
-        ctx.beginPath();
-        ctx.arc(x, y, 5, 0, 2 * Math.PI);
-        ctx.fillStyle = color;
-        ctx.fill();
+        // Only draw the nose for face keypoints
+        if (keypoint.part === 'nose' || !isFaceKeypoint(keypoint.part)) {
+          const [x, y] = keypoint.position;
+          ctx.beginPath();
+          ctx.arc(x, y, 5, 0, 2 * Math.PI);
+          ctx.fillStyle = color;
+          ctx.fill();
+        }
       }
     });
+  };
+
+  // Helper function to determine if a keypoint is a face keypoint (excluding nose)
+  const isFaceKeypoint = (part) => {
+    const faceKeypoints = [
+      'leftEye', 'rightEye', 'leftEar', 'rightEar', 'leftEyeInner', 'leftEyeOuter',
+      'rightEyeInner', 'rightEyeOuter', 'leftCheek', 'rightCheek', 'mouthLeft', 'mouthRight'
+    ];
+    return faceKeypoints.includes(part);
   };
 
   const drawSkeleton = (keypoints, minConfidence, ctx, color = 'red', lineWidth = 2) => {
@@ -160,26 +172,40 @@ function App() {
       { partA: 'leftKnee', partB: 'leftAnkle' },
       { partA: 'rightHip', partB: 'rightKnee' },
       { partA: 'rightKnee', partB: 'rightAnkle' },
+      // Other connections...
     ];
-  
+
     adjacentKeyPoints.forEach(({ partA, partB }) => {
       const keypointA = keypoints.find(k => k.part === partA);
       const keypointB = keypoints.find(k => k.part === partB);
-  
+
       if (keypointA && keypointB && keypointA.score >= minConfidence && keypointB.score >= minConfidence) {
         drawSegment(keypointA.position, keypointB.position, color, lineWidth, ctx);
       }
     });
+
+    // Connect nose to midpoint between shoulders
+    const nose = keypoints.find(k => k.part === 'nose');
+    const leftShoulder = keypoints.find(k => k.part === 'leftShoulder');
+    const rightShoulder = keypoints.find(k => k.part === 'rightShoulder');
+
+    if (nose && leftShoulder && rightShoulder && nose.score >= minConfidence && leftShoulder.score >= minConfidence && rightShoulder.score >= minConfidence) {
+      const midpoint = [
+        (leftShoulder.position[0] + rightShoulder.position[0]) / 2,
+        (leftShoulder.position[1] + rightShoulder.position[1]) / 2,
+      ];
+      drawSegment(nose.position, midpoint, color, lineWidth, ctx);
+    }
   };
 
   const drawSegment = (from, to, color, lineWidth, ctx) => {
     ctx.beginPath();
-    ctx.moveTo(from[0], from[1]); // Move to the first keypoint
-    ctx.lineTo(to[0], to[1]); // Draw a line to the second keypoint
+    ctx.moveTo(from[0], from[1]);
+    ctx.lineTo(to[0], to[1]);
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
     ctx.stroke();
-  };  
+  };
 
   const drawCanvas = (pose, video, canvas, fall) => {
     const ctx = canvas.getContext('2d');
